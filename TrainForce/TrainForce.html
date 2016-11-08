@@ -197,38 +197,58 @@
 		}
 		
 		if(direction1 == Direction.RIGHT && turning){ 
+			console.log("x: " + nx1 + " y: " + ny1);
 			grid[turnX][turnY] = "";
-			if(nx1 >= 45) nx1 = 45;
-			grid[nx1][ny1] = "T"+number+"R";
 			turnX = nx1;
 			turnY = ny1;
+			if(nx1 >= 45) turnX = 44;
+			else if(nx1 <= 0) turnX = 0;
+			else if(ny1 <= 0) turnY = 0;
+			else if(ny1 >= 45) turnY = 44;
+			console.log("x: " + nx1 + " y: " + ny1);
+			grid[turnX][turnY] = "T"+number+"R";
 			console.log("grid: "+grid);
 			turning = false;
 		}
 		else if(direction1 == Direction.LEFT && turning) {
+			console.log("x: " + nx1 + " y: " + ny1);
 			grid[turnX][turnY] = "";
-			if(nx1 <= 0) nx1 = 0;
-			grid[nx1][ny1] = "T"+number+"L";
 			turnX = nx1;
 			turnY = ny1;
+			if(nx1 >= 45) turnX = 44;
+			else if(nx1 <= 0) turnX = 0;
+			else if(ny1 <= 0) turnY = 0;
+			else if(ny1 >= 45) turnY = 44;
+			console.log("x: " + nx1 + " y: " + ny1);
+			grid[turnX][turnY] = "T"+number+"L";
 			console.log("grid: "+grid);
 			turning = false;
 		}
 		else if(direction1 == Direction.UP && turning){
+			console.log("x: " + nx1 + " y: " + ny1);
 			grid[turnX][turnY] = "";
-			if(ny1 <= 0) ny1 = 0;
-			grid[nx1][ny1] = "T"+number+"U";
 			turnX = nx1;
 			turnY = ny1;
+			if(nx1 >= 45) turnX = 44;
+			else if(nx1 <= 0) turnX = 0;
+			else if(ny1 <= 0) turnY = 0;
+			else if(ny1 >= 45) turnY = 44;
+			console.log("x: " + nx1 + " y: " + ny1);
+			grid[turnX][turnY] = "T"+number+"U";
 			console.log("grid: "+grid);
 			turning = false;
 		}
 		else if(direction1 == Direction.DOWN && turning) {
+			console.log("x: " + nx1 + " y: " + ny1);
 			grid[turnX][turnY] = "";
-			if(ny1 >= 45) ny1 = 45;
-			grid[nx1][ny1] = "T"+number+"D";
 			turnX = nx1;
 			turnY = ny1;
+			if(nx1 >= 45) turnX = 44;
+			else if(nx1 <= 0) turnX = 0;
+			else if(ny1 <= 0) turnY = 0;
+			else if(ny1 >= 45) turnY = 44;
+			console.log("x: " + nx1 + " y: " + ny1);
+			grid[turnX][turnY] = "T"+number+"D";
 			console.log("grid: "+grid);
 			turning = false;
 		}
@@ -278,7 +298,7 @@
 		}
 		else if(nx1 > w/cellWidth - 1)
 		{
-			nx1 = -1;
+			nx1 = 0;
 			//console.log("right");
 		}
 		if(ny1 < 0)
@@ -288,7 +308,7 @@
 		}
 		else if(ny1 > h/cellWidth -1)
 		{
-			ny1 = -1;
+			ny1 = 0;
 			//console.log("bottom");
 		}
 		//This will restart the game if the snake hits itself
@@ -488,6 +508,7 @@
 		//ctx.drawImage(imageArray[4],150,0,50,50, x*cellWidth, y*cellWidth, cellWidth, cellWidth);
 	}
 	
+	/*for collisions it could work like this, send x and y to collision checker*/
 	function check_collision(x, y, array, array2)
 	{
 		//This function will check if the provided x/y coordinates exist
