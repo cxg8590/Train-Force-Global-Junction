@@ -41,9 +41,9 @@
 	};
 	
 	//audio
-	createjs.Sound.registerSound("Audio/AridCanyon.mp3", "bg");
+	/*createjs.Sound.registerSound("Audio/AridCanyon.mp3", "bg");
 	createjs.Sound.registerSound("Audio/explode.mp3", "explode");
-	createjs.Sound.registerSound("Audio/Shoot.mp3", "shoot");
+	createjs.Sound.registerSound("Audio/Shoot.mp3", "shoot");*/
 	
 	//images
 	var imagePaths = ["images/cart.png","images/cart2.png","images/mainTrain.png","images/mainTrain2.png","images/pickup.png","images/desert.jpg","images/TrainForceStart.png","images/endScreen.png","images/winnerText2.png","images/winnerText2.png"];
@@ -64,9 +64,6 @@
 	var w = canvas.width;
 	var h = canvas.height;
 	var cellWidth = 10;
-	var grid = [new Array(w/cellWidth),new Array(h/cellWidth)];
-	var snakeGrid1;
-	var snakeGrid2;
 	var direction1;
 	var direction2;
 	var shoot1;
@@ -121,7 +118,12 @@
 	};
 	
 	
-	
+	var grid = [new Array(w/cellWidth)];
+	var number;//number train you are
+	//turning stuff
+	var turning = false;
+	var turnX = 0;
+	var turnY = 0;
 	
 	
 	//Lets create the snake now
@@ -130,6 +132,10 @@
 	
 	function init()
 	{
+		for(var i = 0; i <45; i++){
+			grid[i] = new Array(h/cellWidth);
+		}
+		number = 0;
 		ctx.font = "20px smokumregular";
 		direction2 = Direction.RIGHT; //default direction1
 		direction1 = Direction.UP;
@@ -138,7 +144,7 @@
 		//finally lets display the score1
 		/*score1 = 400;
 		score2 = 400;*/
-		
+
 		//Lets move the snake now using a timer which will trigger the paint function
 		//every 60ms
 		if(typeof intervalID != "undefined") clearInterval(intervalID);
@@ -177,10 +183,55 @@
 		var nx2 = snake2_array[0].x;
 		var ny2 = snake2_array[0].y;
 		
-		if(direction1 == Direction.RIGHT) nx1++;
-		else if(direction1 == Direction.LEFT) nx1--;
-		else if(direction1 == Direction.UP) ny1--;
-		else if(direction1 == Direction.DOWN) ny1++;
+		if(direction1 == Direction.RIGHT){ 
+			nx1++;
+		}
+		else if(direction1 == Direction.LEFT) {
+			nx1--;
+		}
+		else if(direction1 == Direction.UP){
+			ny1--;
+		}
+		else if(direction1 == Direction.DOWN) {
+			ny1++;
+		}
+		
+		if(direction1 == Direction.RIGHT && turning){ 
+			grid[turnX][turnY] = "";
+			if(nx1 >= 45) nx1 = 45;
+			grid[nx1][ny1] = "T"+number+"R";
+			turnX = nx1;
+			turnY = ny1;
+			console.log("grid: "+grid);
+			turning = false;
+		}
+		else if(direction1 == Direction.LEFT && turning) {
+			grid[turnX][turnY] = "";
+			if(nx1 <= 0) nx1 = 0;
+			grid[nx1][ny1] = "T"+number+"L";
+			turnX = nx1;
+			turnY = ny1;
+			console.log("grid: "+grid);
+			turning = false;
+		}
+		else if(direction1 == Direction.UP && turning){
+			grid[turnX][turnY] = "";
+			if(ny1 <= 0) ny1 = 0;
+			grid[nx1][ny1] = "T"+number+"U";
+			turnX = nx1;
+			turnY = ny1;
+			console.log("grid: "+grid);
+			turning = false;
+		}
+		else if(direction1 == Direction.DOWN && turning) {
+			grid[turnX][turnY] = "";
+			if(ny1 >= 45) ny1 = 45;
+			grid[nx1][ny1] = "T"+number+"D";
+			turnX = nx1;
+			turnY = ny1;
+			console.log("grid: "+grid);
+			turning = false;
+		}
 		
 		if(direction2 == Direction.RIGHT) nx2++;
 		else if(direction2 == Direction.LEFT) nx2--;
@@ -194,7 +245,7 @@
 		3 = bullet 1
 		4 = bullet 2
 		*/
-		console.log(grid);
+		/*console.log(grid);
 		grid[parseInt(nx1/cellWidth)][parseInt(ny1/cellWidth)] = 1;
 		if(grid[parseInt(nx1/cellWidth) + 1][parseInt(ny1/cellWidth)] = 1){
 			grid[parseInt(nx1/cellWidth)+1][parseInt(ny1/cellWidth)] = 0
@@ -208,7 +259,7 @@
 		else if(grid[parseInt(nx1/cellWidth)][parseInt(ny1/cellWidth)- 1] = 1){
 			grid[parseInt(nx1/cellWidth)][parseInt(ny1/cellWidth)- 1] = 0
 		}
-		grid[parseInt(nx2/cellWidth)][parseInt(ny2/cellWidth)] = 2;
+		grid[parseInt(nx2/cellWidth)][parseInt(ny2/cellWidth)] = 2;*/
 		
 		//test
 		ctx.rect(nx1/cellWidth,ny1/cellWidth,10,10);
@@ -220,22 +271,22 @@
 		if(shoot2 == true) shoot(nx2, ny2, direction2, 2);
 		
 		//Screen wraparound
-		if(nx1 == -1)
+		if(nx1 < 0)
 		{
 			nx1 = w/cellWidth;
 			//console.log("left");
 		}
-		else if(nx1 == w/cellWidth)
+		else if(nx1 > w/cellWidth - 1)
 		{
 			nx1 = -1;
 			//console.log("right");
 		}
-		if(ny1 == -1)
+		if(ny1 < 0)
 		{
 			ny1 = h/cellWidth;
 			//console.log("top");
 		}
-		else if(ny1 == h/cellWidth)
+		else if(ny1 > h/cellWidth -1)
 		{
 			ny1 = -1;
 			//console.log("bottom");
@@ -290,6 +341,7 @@
 		//If the new head position matches with that of the food,
 		//Create a new head instead of moving the tail
 		if(nx1 == food.x && ny1 == food.y){
+			grid[nx1][ny1] = "";
 			var tail1 = {x: nx1, y: ny1};
 			score1+= 100;
 			//Create new food
@@ -466,7 +518,7 @@
 						var destroyed = array.length - i;
 						for(var k = 0;  k < destroyed; k++)
 						{
-							createjs.Sound.play("explode");
+							/*createjs.Sound.play("explode");*/
 							if(array.length < 1 || i == 0)
 							{
 								lose1 = true;
@@ -511,7 +563,7 @@
 						var destroyed = array.length - i;
 						for(var k = 0; k < destroyed; k++)
 						{
-							createjs.Sound.play("explode");
+							/*createjs.Sound.play("explode");*/
 							if(array.length < 1 || i == 0)
 							{
 								lose2 = true;
@@ -563,9 +615,13 @@
 	//Lets create the food now
 	function create_food()
 	{
+		var foodX =  Math.round(Math.random()*(w-cellWidth)/cellWidth);
+		var foodY = Math.round(Math.random()*(h-cellWidth)/cellWidth);
+		grid[foodX][foodY] = "F";
+		console.log("x; "+foodX+" y: "+foodY+" grid: "+grid);
 		food = {
-			x: Math.round(Math.random()*(w-cellWidth)/cellWidth), 
-			y: Math.round(Math.random()*(h-cellWidth)/cellWidth), 
+			x:foodX, 
+			y: foodY, 
 		};
 		//This will create a cell with x/y between 0-44
 		//Because there are 45(450/10) positions accross the rows and columns
@@ -574,10 +630,16 @@
 	//shoot bullet
 	function shoot(x, y, direction, shoot)
 	{
-		var shootSound = createjs.Sound.play("shoot");
-		shootSound.volume = .5;
+		/*var shootSound = createjs.Sound.play("shoot");
+		shootSound.volume = .5;*/
 		if(shoot == 1)
 		{
+			for(var i = 0; i <45; i++){
+				for(var j = 0; j <45; j++){
+					if(grid[i][j] == "B1left" ||grid[i][j] == "B1right" ||grid[i][j] == "B1up" ||grid[i][j] == "B1down") grid[i][j] = "";
+				}
+			}
+			grid[x][y] = "B1"+direction;
 			bullets1.push({x,y,direction});
 			shoot1 = false;
 		}
@@ -591,10 +653,22 @@
 	//Lets add the keyboard controls now
 	window.onkeydown = function(e){
 		var key = e.keyCode;
-		if(key == Key1.LEFT && direction1 != Direction.RIGHT) direction1 = Direction.LEFT;
-		else if(key == Key1.UP && direction1 != Direction.DOWN) direction1 = Direction.UP;
-		else if(key == Key1.RIGHT && direction1 != Direction.LEFT) direction1 = Direction.RIGHT;
-		else if(key == Key1.DOWN && direction1 != Direction.UP) direction1 = Direction.DOWN;
+		if(key == Key1.LEFT && direction1 != Direction.RIGHT){ 
+			direction1 = Direction.LEFT;
+			turning = true;
+		}
+		else if(key == Key1.UP && direction1 != Direction.DOWN){ 
+			direction1 = Direction.UP;
+			turning = true;
+		}
+		else if(key == Key1.RIGHT && direction1 != Direction.LEFT){
+			direction1 = Direction.RIGHT;
+			turning = true;
+		}
+		else if(key == Key1.DOWN && direction1 != Direction.UP){ 
+			direction1 = Direction.DOWN;
+			turning = true;
+		}
 		
 		else if(key == Key2.LEFT && direction2 != Direction.RIGHT) direction2 = Direction.LEFT;
 		else if(key == Key2.UP && direction2 != Direction.DOWN) direction2 = Direction.UP;
@@ -609,8 +683,8 @@
 	window.onmousedown = function(e){
 		if(startscreen == true){
 			startscreen = false;
-			var startSound = createjs.Sound.play("bg");
-			startSound.volume = 0.3;
+			/*var startSound = createjs.Sound.play("bg");
+			startSound.volume = 0.3;*/
 			init();
 		}
 		if(endscreen == true){
