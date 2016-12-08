@@ -165,7 +165,7 @@
         var nx = [];
         var ny = [];
         
-        for(var i = 0; i < id; i++){
+        for(var i = 0; i < snakeCount; i++){
 		  nx[i] = snake_array[i][0].x;
 		  ny[i] = snake_array[i][0].y;
         }
@@ -173,7 +173,7 @@
 		var nx2 = snake2_array[0].x;
 		var ny2 = snake2_array[0].y;
 		
-        for(var i = 0; i < id; i++){
+        for(var i = 0; i < snakeCount; i++){
 		  if(direction[i] == Direction.RIGHT){ 
 		  	nx[i]++;
 		  }
