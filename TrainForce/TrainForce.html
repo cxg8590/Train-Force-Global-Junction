@@ -8,14 +8,15 @@
 <body>
 <canvas id="canvas" width="450" height="450"></canvas>
 	<script src="lib/preloadjs-0.6.1.min.js"></script>
-	<script src="lib/soundjs-0.6.1.min.js"></script>
 	<script src="lib/tweenjs-0.6.1.min.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
 	<script src="js/loader.js"></script>
 <script>
 
 
 (function(){
 "use strict";
+    let socket;
 	// constants
 	var Key1 = {
 		LEFT: 37,
@@ -25,13 +26,13 @@
 		FIRE: 96
 	};
 	
-	var Key2 = {
+	/*var Key2 = {
 		LEFT: 65,
 		UP: 87,
 		RIGHT: 68,
 		DOWN: 83,
 		FIRE: 86
-	};
+	};*/
 	
 	var Direction = {
 		LEFT: "left",
@@ -144,6 +145,11 @@
 		//finally lets display the score1
 		/*score1 = 400;
 		score2 = 400;*/
+        
+        socket.on('connect', () => {
+				
+				socket.emit('join', 'room1');
+			});
 
 		//Lets move the snake now using a timer which will trigger the paint function
 		//every 60ms
@@ -154,6 +160,17 @@
 	function start(){
 		ctx.drawImage(imageArray[6],0,0);
 	}
+    
+    const setupSocket = () => {
+			console.log("setup");
+			
+			socket.on('update', (data) =>{
+				console.log(data);
+				
+				handleMessage(data);
+			});
+		}
+    
 	function end(){
 		ctx.drawImage(imageArray[7],0,0);
 		if(score1 > score2) ctx.drawImage(imageArray[8],90,36);
@@ -670,14 +687,14 @@
 			turning = true;
 		}
 		
-		else if(key == Key2.LEFT && direction2 != Direction.RIGHT) direction2 = Direction.LEFT;
+		/*else if(key == Key2.LEFT && direction2 != Direction.RIGHT) direction2 = Direction.LEFT;
 		else if(key == Key2.UP && direction2 != Direction.DOWN) direction2 = Direction.UP;
 		else if(key == Key2.RIGHT && direction2 != Direction.LEFT) direction2 = Direction.RIGHT;
 		else if(key == Key2.DOWN && direction2 != Direction.UP) direction2 = Direction.DOWN;
-		
+		*/
 		//shooting
 		else if(key == Key1.FIRE) shoot1 = true;
-		else if(key == Key2.FIRE) shoot2 = true;
+		//else if(key == Key2.FIRE) shoot2 = true;
 	};
 	
 	window.onmousedown = function(e){
