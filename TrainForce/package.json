@@ -1,6 +1,10 @@
 {
   "name": "trainforce",
   "version": "1.0.0",
+  "engines": {
+    "node": "6.5.0",
+    "npm": "3.10.3"
+  },
   "description": "The trainforciest game in the west! Pew Pew!",
   "main": "index.js",
   "scripts": {
@@ -10,7 +14,11 @@
   "author": "Chris Granville",
   "license": "ISC",
   "dependencies": {
-    "socket.io": "^1.4.8"
+    "socket.io": "^1.4.8",
+    "jade": "*",
+    "express": "^4.13.4",
+    "express-handlebars": "^3.0.0",
+    "express-session": "^1.13.0"
   },
   "devDependencies": {
     "eslint": "^3.5.0",

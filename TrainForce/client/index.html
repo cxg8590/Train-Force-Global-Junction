@@ -1,0 +1,764 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8" />
+	<title>TrainForce</title>
+	<link rel="stylesheet" href="../smokum_regular_macroman/stylesheet.css" type="text/css" charset="utf-8" />
+</head>
+<body>
+<canvas id="canvas" width="450" height="450"></canvas>
+    <script src="/socket.io/socket.io.js"></script>
+	<!--<script src="../js/loader.js"></script>-->
+<script>
+
+(function(){
+"use strict";
+    let socket;
+	// constants
+	var Key = {
+		LEFT: 37,
+		UP: 38,
+		RIGHT: 39,
+		DOWN: 40,
+		FIRE: 96
+	};
+	
+	var Direction = {
+		LEFT: "left",
+		UP: "up",
+		RIGHT: "right",
+		DOWN: "down"
+	};
+	
+	
+	//images
+	var imagePaths = ["../images/cart.png","../images/cart2.png","../images/mainTrain.png","../images/mainTrain2.png","../images/pickup.png","../images/desert.jpg","../images/TrainForceStart.png","../images/endScreen.png","../images/winnerText2.png","../images/winnerText2.png"];
+	var imageArray = []; // will contain Image objects
+    console.log("img 1: " + imageArray[0]);
+	loadImagesWithCallback(imagePaths,function(images){
+			console.log("loading images");
+			imageArray = images;
+			console.log("** images all pre-loaded **");
+			console.log("imageArray=" + imageArray);
+			start();
+		});
+     console.log("img 2: " + imageArray[0]);
+
+	// variables
+	var canvas = document.querySelector("#canvas");
+	var ctx = canvas.getContext("2d");
+	var startscreen = true; //for clickevents
+	var endscreen = true;
+	var w = canvas.width;
+	var h = canvas.height;
+	var cellWidth = 10;
+	var direction = [];
+	var shoot1;
+	var fireRate = 2;
+	var bullets1 = [];
+	var bullets2 = [];
+	var bullet;
+	var food;
+	var score = [];
+	var lose = [];
+	var intervalID;
+	var round;
+	var dt = 0;
+	var snake= {
+		list: [],
+		startLength: 5,
+		direction1: Direction.UP,
+		init: function(){
+			for(var i = 0; i<this.startLength; i++){
+				this.list.push({x: i + 10, y:0});
+			}
+		},
+		head: function(){
+			return this.list[0];
+		},
+		
+		grow: function(where){
+			this.list.unshift(where);
+		}
+	
+	}
+	var snakes = [];
+    var snakeCount = 3;     
+    
+    var id = 0;
+	
+	
+	var grid = [new Array(w/cellWidth)];
+	var number;//number train you are
+	//turning stuff
+	var turning = false;
+	var turnX = 0;
+	var turnY = 0;
+	
+	
+	//Lets create the snake now
+	var snake_array = []; //an array of cells to make up the snake
+	
+	function init()
+	{
+		for(var i = 0; i <45; i++){
+			grid[i] = new Array(h/cellWidth);
+		}
+		number = 0;
+		ctx.font = "20px smokumregular";
+		//direction2 = Direction.RIGHT; //default direction1
+		
+		create_snake();
+		create_food(); //Now we can see the food particle
+		//finally lets display the score1
+		/*score1 = 400;
+		score2 = 400;*/
+        
+        /*socket.on('connect', () => {
+				
+				socket.emit('join', 'room1');
+			});*/
+
+		//Lets move the snake now using a timer which will trigger the paint function
+		//every 60ms
+		if(typeof intervalID != "undefined") clearInterval(intervalID);
+		intervalID = setInterval(loop, 60);
+	}
+	
+	function start(){
+		ctx.drawImage(imageArray[6],0,0);
+	}
+    
+    /*const setupSocket = () => {
+			console.log("setup");
+			
+			socket.on('update', (data) =>{
+				console.log(data);
+				
+				handleMessage(data);
+			});
+		}
+    */
+	function end(){
+		ctx.drawImage(imageArray[7],0,0);
+		/*if(score1 > score2) ctx.drawImage(imageArray[8],90,36);
+		else ctx.drawImage(imageArray[9],90,36);*/
+		ctx.font = "40px smokumregular";
+		/*ctx.fillText(score2, 54, 421);
+		ctx.fillText(score2, 324, 421);*/
+		ctx.font = "20px smokumregular";
+	}
+	
+	function loop(){
+		if(round >= 6)
+		{
+			endscreen = true;
+			end();
+			return;
+		}
+		update()
+		draw();
+	}
+	
+	function update(){
+		
+        var nx = [];
+        var ny = [];
+        
+        for(var i = 0; i < snakeCount; i++){
+		  nx[i] = snake_array[i][0].x;
+		  ny[i] = snake_array[i][0].y;
+        }
+		
+		/*var nx2 = snake2_array[0].x;
+		var ny2 = snake2_array[0].y;
+		*/
+        for(var i = 0; i < snakeCount; i++){
+		  if(direction[i] == Direction.RIGHT){ 
+		  	nx[i]++;
+		  }
+		  else if(direction[i] == Direction.LEFT) {
+		  	nx[i]--;
+		  }
+		  else if(direction[i] == Direction.UP){
+		  	ny[i]--;
+              console.log("train" + i +"moving up: " + ny[i]);
+		  }
+		  else if(direction[i] == Direction.DOWN) {
+		  	ny[i]++;
+		  }
+        }
+		
+		if(direction[id] == Direction.RIGHT && turning){ 
+			grid[turnX][turnY] = "";
+			if(nx[id] >= 45) nx[id] = 44;
+			grid[nx[id]][ny[id]] = "T"+id+"R";
+			turnX = nx[id];
+			turnY = ny[id];
+			console.log("grid: "+grid);
+			turning = false;
+		}
+		else if(direction[id] == Direction.LEFT && turning) {
+			grid[turnX][turnY] = "";
+			if(nx[id] <= 0) nx[id] = 0;
+			grid[nx[id]][ny[id]] = "T"+id+"L";
+			turnX = nx[id];
+			turnY = ny[id];
+			console.log("grid: "+grid);
+			turning = false;
+		}
+		else if(direction[id] == Direction.UP && turning){
+			grid[turnX][turnY] = "";
+			if(ny[id] <= 0) ny[id] = 0;
+            console.log( " nx: " + nx[id] + " ny: "+ny[id]);
+			grid[nx[id]][ny[id]] = "T"+id+"U";
+			turnX = nx[id];
+			turnY = ny[id];
+			console.log("grid: "+grid);
+			turning = false;
+		}
+		else if(direction[id] == Direction.DOWN && turning) {
+			grid[turnX][turnY] = "";
+			if(ny[id] >= 45) ny[id] = 44;
+			grid[nx[id]][ny[id]] = "T"+id+"D";
+			turnX = nx[id];
+			turnY = ny[id];
+			console.log("grid: "+grid);
+			turning = false;
+		}
+		
+		/*if(direction2 == Direction.RIGHT) nx2++;
+		else if(direction2 == Direction.LEFT) nx2--;
+		else if(direction2 == Direction.UP) ny2--;
+		else if(direction2 == Direction.DOWN) ny2++;*/
+		
+		//add to grid
+		/*
+		1 = train 1
+		2 = train 2
+		3 = bullet 1
+		4 = bullet 2
+		*/
+		/*console.log(grid);
+		grid[parseInt(nx1/cellWidth)][parseInt(ny1/cellWidth)] = 1;
+		if(grid[parseInt(nx1/cellWidth) + 1][parseInt(ny1/cellWidth)] = 1){
+			grid[parseInt(nx1/cellWidth)+1][parseInt(ny1/cellWidth)] = 0
+		}
+		else if(grid[parseInt(nx1/cellWidth) - 1][parseInt(ny1/cellWidth)] = 1){
+			grid[parseInt(nx1/cellWidth)-1][parseInt(ny1/cellWidth)] = 0
+		}
+		else if(grid[parseInt(nx1/cellWidth)][parseInt(ny1/cellWidth)+ 1] = 1){
+			grid[parseInt(nx1/cellWidth)][parseInt(ny1/cellWidth)+ 1] = 0
+		}
+		else if(grid[parseInt(nx1/cellWidth)][parseInt(ny1/cellWidth)- 1] = 1){
+			grid[parseInt(nx1/cellWidth)][parseInt(ny1/cellWidth)- 1] = 0
+		}
+		grid[parseInt(nx2/cellWidth)][parseInt(ny2/cellWidth)] = 2;*/
+		/*
+		//test
+		ctx.rect(nx1/cellWidth,ny1/cellWidth,10,10);
+		ctx.stroke();
+		ctx.fill();
+		*/
+		//shooting
+		if(shoot1 == true) shoot(nx[id], ny[id], direction[id], 1);
+		//if(shoot2 == true) shoot(nx2, ny2, direction2, 2);
+		
+		//Screen wraparound
+        for(var i = 0; i < snakeCount; i++){
+		  if(nx[i] < 0)
+		  {
+		  	nx[i] = w/cellWidth;
+		  	//console.log("left");
+		  }
+		  else if(nx[i] > w/cellWidth - 1)
+		  {
+		  	nx[i] = -1;
+		  	//console.log("right");
+		  }
+		  if(ny[i] < 0)
+		  {
+		  	ny[i] = h/cellWidth;
+		  	//console.log("top");
+		  }
+		  else if(ny[i] > h/cellWidth -1)
+		  {
+		  	ny[i] = -1;
+		  	//console.log("bottom");
+		  }
+          for(var j = 0; j < snakeCount; j++){
+		  //This will restart the game if the snake hits itself
+		  if(check_collision(nx[i], ny[i], snake_array[i], snake_array[j]))
+		  {
+              if(i != j){
+		  	   //restart game
+		  	   //score1-= 500;
+		  	   round++;
+		  	   init();
+		  	   return;
+              }
+		  }
+          }
+        }
+		
+		/*if(nx2 == -1)
+		{
+			nx2 = w/cellWidth;
+			//console.log("left");
+		}
+		else if(nx2 == w/cellWidth)
+		{
+			nx2 = -1;
+			//console.log("right");
+		}
+		if(ny2 == -1)
+		{
+			ny2 = h/cellWidth;
+			//console.log("top");
+		}
+		else if(ny2 == h/cellWidth)
+		{
+			ny2 = -1;
+			//console.log("bottom");
+		}
+		//This will restart the game if the snake hits itself
+		if(check_collision(nx2, ny2, snake2_array, snake1_array))
+		{
+			//restart game
+			score2-= 500;
+			round++;
+			init();
+			return;
+		}*/
+		console.log("bullet");
+		//bullet collision
+        for(var i = 0; i < snakeCount; i++){
+            if(i == id){
+            bullet_collision(snake_array[i], bullets2, 1, i);
+            }
+            else{
+            bullet_collision(snake_array[i], bullets1, 2, i);
+            }
+        }
+		
+		//Lets write the code to make the snake eat the food
+		//The logic is simple
+		//If the new head position matches with that of the food,
+		//Create a new head instead of moving the tail
+        for(var i = 0; i < snakeCount; i++){
+		  if(nx[i] == food.x && ny[i] == food.y){
+		  	grid[nx[i]][ny[i]] = "";
+            var tail = [];
+		  	tail[i] = {x: nx[i], y: ny[i]};
+		  	score[i]+= 100;
+		  	//Create new food
+		  	create_food();
+		  }else{
+            var tail = [];
+		    tail[i] = snake_array[i].pop(); //pops out the last cell
+		  	tail[i].x = nx[i]; tail[i].y = ny[i];
+              console.log("tail cave: " + nx[i]);
+		  }
+             console.log("end sa: " + snake_array[i][0].x);
+            console.log("end tail: " + tail[i].x);
+            snake_array[i].unshift(tail[i]); //puts back the tail as the first cell
+            
+        }
+        
+		/*if(nx2 == food.x && ny2 == food.y){
+			var tail2 = {x: nx2, y: ny2};
+			score2+=100;
+			//Create new food
+			create_food();
+		}else{
+			var tail2 = snake2_array.pop(); //pops out the last cell
+			tail2.x = nx2; tail2.y = ny2;
+		}*/
+		//The snake can now eat the food.
+		//snake2_array.unshift(tail2);
+		
+		/*if(lose1 == true)
+		{
+			init();
+			/*score2 += 500;
+			score1 += 400;
+			lose1 = false;
+			round++;
+			return;
+		}
+		if(lose2 == true)
+		{
+			init();
+			/*score1 += 500;
+			score2 += 400;
+			lose2 = false;
+			round++;
+			return;
+        }*/
+	}
+	
+	function draw(){
+		ctx.drawImage(imageArray[5], 0, 0, w, h);
+		
+		// draw snake
+        for(var j = 0; j < snakeCount; j++){
+		  for(var i = 0; i < snake_array[j].length; i++){
+		  	var c = snake_array[j][i];
+              if(j == id){
+		  	   if(i == 0)  paint_cell(c.x, c.y, 0, true);
+		  	   else paint_cell(c.x, c.y, 0, false);
+              }
+              else{
+                  if(i == 0)  paint_cell(c.x, c.y, 1, true);
+			     else paint_cell(c.x, c.y, 1, false);
+              }
+		  }
+        }
+		
+		/*for(var i = 0; i < snake2_array.length; i++){
+			var c = snake2_array[i];
+			if(i == 0)  paint_cell(c.x, c.y, 1, true);
+			else paint_cell(c.x, c.y, 1, false);
+		}*/
+		
+		// draw food
+		dt++;
+		cart(food.x, food.y,dt);
+		
+		// draw score
+		/*var score1_text = "Player 1: " + score2;
+		ctx.fillText(score1_text, 5, h-5);
+		
+		var score2_text = "Player 2: " + score1;
+		ctx.fillText(score2_text, 330, h-5);*/
+		
+		//draw bullets
+		for(var i = 0; i < bullets1.length; i++){
+			 var c = bullets1[i];
+			 if(c.direction == Direction.RIGHT) c.x += fireRate;
+			 else if(c.direction == Direction.LEFT) c.x -= fireRate;
+			 else if(c.direction == Direction.UP) c.y -= fireRate;
+			 else if(c.direction == Direction.DOWN) c.y += fireRate;
+			 paint_cell(c.x, c.y, 0, false);
+            }
+		for(var i = 0; i < bullets2.length; i++){
+			var c = bullets2[i];
+			if(c.direction == Direction.RIGHT) c.x += fireRate;
+			else if(c.direction == Direction.LEFT) c.x -= fireRate;
+			else if(c.direction == Direction.UP) c.y -= fireRate;
+			else if(c.direction == Direction.DOWN) c.y += fireRate;
+			paint_cell(c.x, c.y, 1, false);
+		}
+	}
+	
+	//Lets first create a generic function to paint cells
+	function paint_cell(x, y, color, front)
+	{
+		if(color == 0){ 
+		if(front == true){
+			if(direction[id] == Direction.RIGHT){
+				ctx.drawImage(imageArray[2],50,0,50,50, x*cellWidth, y*cellWidth, cellWidth, cellWidth);
+			}
+			else if(direction[id] == Direction.LEFT){
+				ctx.drawImage(imageArray[2],150,0,50,50, x*cellWidth, y*cellWidth, cellWidth, cellWidth);
+			}
+			else if(direction[id] == Direction.UP){
+				ctx.drawImage(imageArray[2],0,0,50,50, x*cellWidth, y*cellWidth, cellWidth, cellWidth);
+			}
+			else if(direction[id] == Direction.DOWN){
+				ctx.drawImage(imageArray[2],100,0,50,50, x*cellWidth, y*cellWidth, cellWidth, cellWidth);
+			}
+			}
+			else ctx.drawImage(imageArray[0], x*cellWidth, y*cellWidth, cellWidth, cellWidth);
+		}
+		if(color == 1){
+			if(front == true){
+			if(direction[id] == Direction.RIGHT){
+				ctx.drawImage(imageArray[3],50,0,50,50, x*cellWidth, y*cellWidth, cellWidth, cellWidth);
+			}
+			else if(direction[id] == Direction.LEFT){
+				ctx.drawImage(imageArray[3],150,0,50,50, x*cellWidth, y*cellWidth, cellWidth, cellWidth);
+			}
+			else if(direction[id] == Direction.UP){
+				ctx.drawImage(imageArray[3],0,0,50,50, x*cellWidth, y*cellWidth, cellWidth, cellWidth);
+			}
+			else if(direction[id] == Direction.DOWN){
+				ctx.drawImage(imageArray[3],100,0,50,50, x*cellWidth, y*cellWidth, cellWidth, cellWidth);
+			}
+			}
+			else  ctx.drawImage(imageArray[1], x*cellWidth, y*cellWidth, cellWidth, cellWidth);
+		}
+		ctx.restore();
+		if(color == 2) ctx.drawImage(imageArray[4], x*cellWidth, y*cellWidth, cellWidth, cellWidth);
+	}
+	
+	function cart(x,y,dt){
+		if(dt % 4 == 0){
+			ctx.drawImage(imageArray[4],0,0,50,50, x*cellWidth, y*cellWidth, cellWidth, cellWidth);
+		}
+		if(dt % 4 == 1){
+			ctx.drawImage(imageArray[4],50,0,65,60, x*cellWidth, y*cellWidth, cellWidth, cellWidth);
+		}
+		if(dt % 4 == 2){
+			ctx.drawImage(imageArray[4],115,0,70,70, x*cellWidth, y*cellWidth, cellWidth, cellWidth);
+		}
+		if(dt % 4 == 3){
+			ctx.drawImage(imageArray[4],185,0,65,60, x*cellWidth, y*cellWidth, cellWidth, cellWidth);
+		}
+		//ctx.drawImage(imageArray[4],150,0,50,50, x*cellWidth, y*cellWidth, cellWidth, cellWidth);
+	}
+	
+	function check_collision(x, y, array, array2)
+	{
+		//This function will check if the provided x/y coordinates exist
+		//in an array of cells or not
+		for(var i = 0; i < array.length; i++)
+		{
+			if(array[i].x == x && array[i].y == y)
+			 return true;
+			 for(var j = 0; j < array2.length; j++)
+			{
+				if(array[i].x == array2[j].x && array[i].y == array2[j].y)
+				return true;
+			}
+		}
+		return false;
+	}
+	
+	function bullet_collision(array, bulletArray, train, numId)
+	{
+		//This function will check if the provided x/y coordinates exist
+		//in an array of cells or not
+		if(train == 1){
+			for(var i = 0; i < array.length; i++)
+			{
+				for(var j = 0; j < bulletArray.length; j++)
+				{
+					if(array[i].x == bulletArray[j].x && array[i].y == bulletArray[j].y){
+						var destroyed = array.length - i;
+						for(var k = 0;  k < destroyed; k++)
+						{
+							/*createjs.Sound.play("explode");*/
+							if(array.length < 1 || i == 0)
+							{
+								//lose1 = true;
+								console.log("Player 1 loses");
+							}
+							else{
+								snake_array[numId].pop();
+								//score1-=100;
+							}
+						}
+						bulletArray.splice(j,1);
+					}
+					//destroys bullets that leave the screen
+					if(bulletArray[j].x == -1)
+					{
+						bulletArray.pop();
+					}
+					else if(bulletArray[j].x == w/cellWidth)
+					{
+						bulletArray.pop();
+					}
+					if(bulletArray[j].y == -1)
+					{
+						bulletArray.pop();
+					}
+					else if(bulletArray[j].y == h/cellWidth)
+					{
+						bulletArray.pop();
+					}
+					
+				}
+			}
+		}
+		
+		if(train == 2){
+			for(var i = 0; i < array.length; i++)
+			{
+				for(var j = 0; j < bulletArray.length; j++)
+				{
+					if(array[i].x == bulletArray[j].x && array[i].y == bulletArray[j].y){
+						console.log("bullet collision");
+						var destroyed = array.length - i;
+						for(var k = 0; k < destroyed; k++)
+						{
+							/*createjs.Sound.play("explode");*/
+							if(array.length < 1 || i == 0)
+							{
+								//lose2 = true;
+								console.log("Player 2 loses");
+							}
+							else{
+								snake_array[numId].pop();
+								//score2-=100;
+							}
+						}
+						bulletArray.splice(j,1);
+					}
+					
+					//destroys bullets that leave the screen
+					if(bulletArray[j].x == -1)
+					{
+						bulletArray.pop();
+					}
+					else if(bulletArray[j].x == w/cellWidth)
+					{
+						bulletArray.pop();
+					}
+					if(bulletArray[j].y == -1)
+					{
+						bulletArray.pop();
+					}
+					else if(bulletArray[j].y == h/cellWidth)
+					{
+						bulletArray.pop();
+					}
+				}
+			}
+		}
+	}
+	
+	function create_snake()
+	{
+		var length = 5; //Length of the snake
+		
+        for(var i = 0; i < snakeCount; i++){
+            snake_array[i] = []; //Empty array to start with
+		for(var j = length-1; j>=0; j--)
+		{
+			//This will create a horizontal snake starting from the top left
+            if(i == 0){
+			 snake_array[i].push({x: j + 40, y:44});
+             direction[i] = Direction.UP;
+            }
+            if(i == 1){
+			 snake_array[i].push({x: j, y:0});
+             direction[i] = Direction.RIGHT;
+            }
+            if(i == 2){
+			 snake_array[i].push({x: j + 40, y:0});
+             direction[i] = Direction.DOWN;
+            }
+            if(i == 3){
+			 snake_array[i].push({x: j, y:44});
+             direction[i] = Direction.Down;
+            }
+		}
+        }
+	}
+	
+	//Lets create the food now
+	function create_food()
+	{
+		var foodX =  Math.round(Math.random()*(w-cellWidth)/cellWidth);
+		var foodY = Math.round(Math.random()*(h-cellWidth)/cellWidth);
+		grid[foodX][foodY] = "F";
+		console.log("x; "+foodX+" y: "+foodY+" grid: "+grid);
+		food = {
+			x:foodX, 
+			y: foodY, 
+		};
+	}
+	
+	//shoot bullet
+	function shoot(x, y, direction, shoot)
+	{
+		/*var shootSound = createjs.Sound.play("shoot");
+		shootSound.volume = .5;*/
+		if(shoot == 1)
+		{
+			for(var i = 0; i <44; i++){
+				for(var j = 0; j <44; j++){
+					if(grid[i][j] == "B1left" ||grid[i][j] == "B1right" ||grid[i][j] == "B1up" ||grid[i][j] == "B1down") grid[i][j] = "";
+				}
+			}
+			grid[x][y] = "B1"+direction;
+			bullets1.push({x,y,direction});
+			shoot1 = false;
+		}
+		if(shoot == 2)
+		{
+			bullets2.push({x,y,direction});
+			shoot2 = false;
+		}
+	}
+	
+	//Lets add the keyboard controls now
+	window.onkeydown = function(e){
+		var key = e.keyCode;
+		if(key == Key.LEFT && direction[id] != Direction.RIGHT){ 
+			direction[id] = Direction.LEFT;
+			turning = true;
+		}
+		else if(key == Key.UP && direction[id] != Direction.DOWN){ 
+			direction[id] = Direction.UP;
+			turning = true;
+		}
+		else if(key == Key.RIGHT && direction[id] != Direction.LEFT){
+			direction[id] = Direction.RIGHT;
+			turning = true;
+		}
+		else if(key == Key.DOWN && direction[id] != Direction.UP){ 
+			direction[id] = Direction.DOWN;
+			turning = true;
+		}
+		
+		/*else if(key == Key2.LEFT && direction2 != Direction.RIGHT) direction2 = Direction.LEFT;
+		else if(key == Key2.UP && direction2 != Direction.DOWN) direction2 = Direction.UP;
+		else if(key == Key2.RIGHT && direction2 != Direction.LEFT) direction2 = Direction.RIGHT;
+		else if(key == Key2.DOWN && direction2 != Direction.UP) direction2 = Direction.DOWN;
+		*/
+		//shooting
+		else if(key == Key.FIRE) shoot1 = true;
+		//else if(key == Key2.FIRE) shoot2 = true;
+	};
+	
+	window.onmousedown = function(e){
+		if(startscreen == true){
+			startscreen = false;
+			/*var startSound = createjs.Sound.play("bg");
+			startSound.volume = 0.3;*/
+			init();
+		}
+		if(endscreen == true){
+			startscreen = true;
+			round = 0;
+			/*score1 = 0;
+			score2 = 0;*/
+			start();
+		}
+	};
+    
+    function loadImagesWithCallback(sources, callback) {
+	var imageObjects = [];
+	var numImages = sources.length;
+	var numLoadedImages = 0;
+	
+	for (var i = 0; i < numImages; i++) {
+	  imageObjects[i] = new Image();
+	  imageObjects[i].onload = function() {
+	  	numLoadedImages++;
+	  	console.log("loaded image at '" + this.src + "'")
+		if(numLoadedImages >= numImages) {
+		  callback(imageObjects); // send the images back
+		}
+	  };
+	  
+	  imageObjects[i].src = sources[i];
+	}
+ };
+		
+}());
+
+	
+	
+	
+	
+	
+	
+	
+
+</script>
+</body>
+</html>
